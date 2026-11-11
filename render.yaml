@@ -1,0 +1,7 @@
+services:
+  - type: web
+    name: online-registration-app
+    env: docker
+    plan: free
+    dockerfilePath: Dockerfile
+    healthCheckPath: /

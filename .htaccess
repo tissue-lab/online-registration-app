@@ -1,0 +1,13 @@
+# Apache Configuration
+DirectoryIndex index.php index.html
+
+# Prevent directory browsing
+Options -Indexes
+
+# UTF-8 Encoding
+AddDefaultCharset UTF-8
+
+# Protect sensitive data files
+<Files "data/*.json">
+    Require all denied
+</Files>

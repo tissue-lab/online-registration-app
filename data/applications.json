@@ -1,0 +1,25 @@
+[
+    {
+        "application_id": "REG-2026-9C8D2D17",
+        "full_name": "Elena Rostova",
+        "email": "elena.rostova@techinstitute.edu",
+        "phone": "+1 (555) 392-1082",
+        "dob": "1998-04-12",
+        "gender": "Female",
+        "course": "M.S. in Artificial Intelligence &amp; Machine Learning",
+        "education": "Bachelor&#039;s Degree",
+        "study_mode": "Full-Time (On-Campus)",
+        "address": "742 Innovation Way",
+        "city": "San Jose",
+        "state": "CA",
+        "zip_code": "95112",
+        "country": "United States",
+        "skills": [
+            "System.Object[]"
+        ],
+        "sop": "I am deeply passionate about applied neural networks and wish to contribute to ethical AI systems.",
+        "photo_url": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMjAiIGhlaWdodD0iMTIwIiB2aWV3Qm94PSIwIDAgMTIwIDEyMCI+PHJlY3Qgd2lkdGg9IjEyMCIgaGVpZ2h0PSIxMjAiIHJ4PSIxMiIgZmlsbD0iIzRmNDZlNSIvPjx0ZXh0IHg9IjUwJSIgeT0iNTQlIiBmb250LWZhbWlseT0iSW50ZXIsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iNDQiIGZvbnQtd2VpZ2h0PSI3MDAiIGZpbGw9IiNmZmZmZmYiIGRvbWluYW50LWJhc2VsaW5lPSJtaWRkbGUiIHRleHQtYW5jaG9yPSJtaWRkbGUiPkVSPC90ZXh0Pjwvc3ZnPg==",
+        "created_at": "2026-11-11 10:49:43",
+        "status": "PROCESSED &amp; ADMITTED"
+    }
+]
