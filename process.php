@@ -6,13 +6,11 @@ if (session_status() === PHP_SESSION_NONE) {
 
 header('X-Content-Type-Options: nosniff');
 
-// Helper to determine if the request is an AJAX request
 function isAjax() {
     return (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest')
         || (!empty($_SERVER['HTTP_ACCEPT']) && strpos($_SERVER['HTTP_ACCEPT'], 'application/json') !== false);
 }
 
-// Function to safely sanitize string input
 function cleanInput($data) {
     if (is_array($data)) {
         return array_map('cleanInput', $data);
@@ -20,11 +18,10 @@ function cleanInput($data) {
     return htmlspecialchars(trim((string)$data), ENT_QUOTES, 'UTF-8');
 }
 
-// Handle non-POST requests
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     if (isAjax()) {
         header('Content-Type: application/json; charset=UTF-8');
-        echo json_encode(['success' => false, 'message' => 'Invalid request method. Only POST is accepted.']);
+        echo json_encode(['success' => false, 'message' => 'Invalid request method. Only POST is allowed.']);
     } else {
         header('Location: index.php');
     }
@@ -36,10 +33,10 @@ $token = $_POST['csrf_token'] ?? '';
 if (empty($_SESSION['csrf_token']) || !hash_equals($_SESSION['csrf_token'], $token)) {
     if (isAjax()) {
         header('Content-Type: application/json; charset=UTF-8');
-        echo json_encode(['success' => false, 'message' => 'Security token invalid or expired. Please refresh the page and try again.']);
+        echo json_encode(['success' => false, 'message' => 'Security token expired. Please refresh the page.']);
         exit;
     } else {
-        die('Security verification failed. Please return to the form and try again.');
+        die('Security verification failed. Please try again.');
     }
 }
 
@@ -48,97 +45,107 @@ if (empty($_SESSION['csrf_token']) || !hash_equals($_SESSION['csrf_token'], $tok
 // -------------------------------------------------------------
 $fullName     = cleanInput($_POST['fullName'] ?? '');
 $email        = filter_var(trim($_POST['email'] ?? ''), FILTER_SANITIZE_EMAIL);
-$phone        = cleanInput($_POST['phone'] ?? '');
+$phoneRaw     = cleanInput($_POST['phone'] ?? '');
+$altPhone     = cleanInput($_POST['altPhone'] ?? '');
 $dob          = cleanInput($_POST['dob'] ?? '');
-$gender       = cleanInput($_POST['gender'] ?? '');
+$gender       = cleanInput($_POST['gender'] ?? 'Male');
+$category     = cleanInput($_POST['category'] ?? 'General (GEN)');
 $course       = cleanInput($_POST['course'] ?? '');
 $education    = cleanInput($_POST['education'] ?? 'Bachelor\'s Degree');
 $studyMode    = cleanInput($_POST['studyMode'] ?? 'Full-Time (On-Campus)');
-$address      = cleanInput($_POST['address'] ?? 'Not provided');
+$address      = cleanInput($_POST['address'] ?? '');
 $city         = cleanInput($_POST['city'] ?? '');
-$state        = cleanInput($_POST['state'] ?? 'N/A');
-$zipCode      = cleanInput($_POST['zipCode'] ?? 'N/A');
-$country      = cleanInput($_POST['country'] ?? '');
+$state        = cleanInput($_POST['state'] ?? 'Karnataka');
+$zipCode      = cleanInput($_POST['zipCode'] ?? '');
+$country      = 'India';
 $sop          = cleanInput($_POST['statementOfPurpose'] ?? 'No statement provided.');
 $terms        = $_POST['terms'] ?? '';
 
-// Sanitize Skills array
+// Sanitize Skills
 $skills = [];
 if (!empty($_POST['skills']) && is_array($_POST['skills'])) {
     foreach ($_POST['skills'] as $skill) {
-        $cleanSkill = cleanInput($skill);
-        if (!empty($cleanSkill)) {
-            $skills[] = $cleanSkill;
+        $cSkill = cleanInput($skill);
+        if (!empty($cSkill)) {
+            $skills[] = $cSkill;
         }
     }
 }
 
 // -------------------------------------------------------------
-// 2. Server-side Validation
+// 2. Server-side Validation with Indian Specifications
 // -------------------------------------------------------------
 $errors = [];
 
+// Name validation
 if (empty($fullName) || strlen($fullName) < 2) {
-    $errors[] = 'Full name is required (minimum 2 characters).';
+    $errors[] = 'Candidate Full Name is required (minimum 2 characters).';
 }
 
+// Email validation
 if (empty($email) || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
     $errors[] = 'A valid email address is required.';
 }
 
-$digitsCount = preg_match_all('/[0-9]/', $phone);
-if (empty($phone) || !preg_match('/^[+]?[0-9\s\-().]{7,25}$/', $phone) || $digitsCount < 7) {
-    $errors[] = 'A valid contact phone number is required (min 7 digits).';
+// Indian Mobile Number validation (10 digits starting with 6, 7, 8, 9)
+$phoneDigits = preg_replace('/\D/', '', $phoneRaw);
+if (strlen($phoneDigits) === 12 && substr($phoneDigits, 0, 2) === '91') {
+    $phoneDigits = substr($phoneDigits, 2);
 }
+if (strlen($phoneDigits) !== 10 || !in_array($phoneDigits[0], ['6', '7', '8', '9'])) {
+    $errors[] = 'A valid 10-digit Indian mobile number starting with 6, 7, 8, or 9 is required.';
+}
+$formattedPhone = '+91 ' . substr($phoneDigits, 0, 5) . ' ' . substr($phoneDigits, 5);
 
+// Date of Birth & Age check (min 14 years)
 if (empty($dob)) {
     $errors[] = 'Date of birth is required.';
 } else {
-    $birthDate = strtotime($dob);
-    $minAgeDate = strtotime('-14 years');
-    if ($birthDate > $minAgeDate) {
-        $errors[] = 'Candidate must be at least 14 years old.';
+    $birthTimestamp = strtotime($dob);
+    $minAgeTimestamp = strtotime('-14 years');
+    if ($birthTimestamp > $minAgeTimestamp) {
+        $errors[] = 'Candidate must be at least 14 years of age.';
     }
 }
 
-$validGenders = ['Male', 'Female', 'Non-Binary', 'Prefer not to say'];
-if (empty($gender) || !in_array($gender, $validGenders)) {
-    $errors[] = 'Please select a valid gender option.';
+// Indian Address checks
+if (empty($address) || strlen($address) < 5) {
+    $errors[] = 'Permanent street address is required (minimum 5 characters).';
+}
+
+if (empty($city) || strlen($city) < 2) {
+    $errors[] = 'City / District is required.';
+}
+
+if (empty($state)) {
+    $errors[] = 'State / Union Territory is required.';
+}
+
+// Indian 6-Digit PIN Code validation
+if (empty($zipCode) || !preg_match('/^[1-9][0-9]{5}$/', $zipCode)) {
+    $errors[] = 'A valid 6-digit Indian Postal PIN Code (e.g. 560001) is required.';
 }
 
 if (empty($course)) {
-    $errors[] = 'Please select your intended program / course.';
-}
-
-if (empty($city)) {
-    $errors[] = 'City is required.';
-}
-
-if (empty($country)) {
-    $errors[] = 'Country is required.';
+    $errors[] = 'Please select your intended academic program.';
 }
 
 if ($terms !== 'accepted') {
-    $errors[] = 'You must accept the declarations and agreement.';
+    $errors[] = 'You must accept the official candidate declaration.';
 }
 
-// If validation errors exist, abort
 if (!empty($errors)) {
     if (isAjax()) {
         header('Content-Type: application/json; charset=UTF-8');
-        echo json_encode([
-            'success' => false,
-            'message' => implode(' ', $errors),
-            'errors'  => $errors
-        ]);
+        echo json_encode(['success' => false, 'message' => implode(' ', $errors), 'errors' => $errors]);
         exit;
     } else {
-        die('<h3>Validation Error(s):</h3><ul><li>' . implode('</li><li>', $errors) . '</li></ul><p><a href="javascript:history.back()">Go Back</a></p>');
+        die('<h3>Validation Error:</h3><p>' . implode('</p><p>', $errors) . '</p><p><a href="javascript:history.back()">Go Back</a></p>');
     }
 }
 
 // -------------------------------------------------------------
-// 3. File Upload Processing (Applicant Photo)
+// 3. File Upload Processing (Candidate Photo)
 // -------------------------------------------------------------
 $uploadsDir = __DIR__ . DIRECTORY_SEPARATOR . 'uploads';
 if (!is_dir($uploadsDir)) {
@@ -151,25 +158,18 @@ $hasCustomPhoto = false;
 if (isset($_FILES['photo']) && $_FILES['photo']['error'] === UPLOAD_ERR_OK) {
     $fileTmpPath   = $_FILES['photo']['tmp_name'];
     $fileSize      = $_FILES['photo']['size'];
-    $fileType      = $_FILES['photo']['type'];
     $originalName  = $_FILES['photo']['name'];
-    $fileExtension = strtolower(pathinfo($originalName, PATHINFO_EXTENSION));
+    $ext           = strtolower(pathinfo($originalName, PATHINFO_EXTENSION));
 
-    $allowedExtensions = ['jpg', 'jpeg', 'png', 'webp'];
-    $maxFileSize = 3 * 1024 * 1024; // 3 MB
-
-    if ($fileSize <= $maxFileSize && in_array($fileExtension, $allowedExtensions)) {
-        // Double-check MIME type using finfo
+    if ($fileSize <= 3 * 1024 * 1024 && in_array($ext, ['jpg', 'jpeg', 'png', 'webp'])) {
         $finfo = finfo_open(FILEINFO_MIME_TYPE);
         $mime = finfo_file($finfo, $fileTmpPath);
         finfo_close($finfo);
 
-        $allowedMimes = ['image/jpeg', 'image/png', 'image/webp'];
-        if (in_array($mime, $allowedMimes)) {
-            $newFileName = 'applicant_' . bin2hex(random_bytes(8)) . '.' . $fileExtension;
-            $destPath = $uploadsDir . DIRECTORY_SEPARATOR . $newFileName;
-
-            if (move_uploaded_file($fileTmpPath, $destPath)) {
+        if (in_array($mime, ['image/jpeg', 'image/png', 'image/webp'])) {
+            $newFileName = 'photo_' . bin2hex(random_bytes(6)) . '.' . $ext;
+            $dest = $uploadsDir . DIRECTORY_SEPARATOR . $newFileName;
+            if (move_uploaded_file($fileTmpPath, $dest)) {
                 $photoWebPath = 'uploads/' . $newFileName;
                 $hasCustomPhoto = true;
             }
@@ -177,35 +177,37 @@ if (isset($_FILES['photo']) && $_FILES['photo']['error'] === UPLOAD_ERR_OK) {
     }
 }
 
-// Fallback Default SVG Avatar if no photo was uploaded
 if (!$hasCustomPhoto) {
-    // Generate an inline SVG avatar with candidate initials
+    // Generate initials SVG avatar
     $initials = strtoupper(substr($fullName, 0, 1));
     $words = explode(' ', $fullName);
     if (count($words) > 1) {
         $initials .= strtoupper(substr($words[count($words) - 1], 0, 1));
     }
-    $svg = '<svg xmlns="http://www.w3.org/2000/svg" width="120" height="120" viewBox="0 0 120 120">' .
-           '<rect width="120" height="120" rx="12" fill="#4f46e5"/>' .
-           '<text x="50%" y="54%" font-family="Inter, sans-serif" font-size="44" font-weight="700" fill="#ffffff" dominant-baseline="middle" text-anchor="middle">' . $initials . '</text>' .
+    $svg = '<svg xmlns="http://www.w3.org/2000/svg" width="120" height="140" viewBox="0 0 120 140">' .
+           '<rect width="120" height="140" rx="8" fill="#1e3a8a"/>' .
+           '<text x="50%" y="52%" font-family="Inter, sans-serif" font-size="46" font-weight="700" fill="#ffffff" dominant-baseline="middle" text-anchor="middle">' . $initials . '</text>' .
            '</svg>';
     $photoWebPath = 'data:image/svg+xml;base64,' . base64_encode($svg);
 }
 
 // -------------------------------------------------------------
-// 4. Generate Application ID and Record
+// 4. Generate Official Indian Application Reference Number
 // -------------------------------------------------------------
-$applicationId = 'REG-' . date('Y') . '-' . strtoupper(substr(md5(uniqid(mt_rand(), true)), 0, 8));
+$applicationId = 'NITAS/ADM/2026/' . strtoupper(substr(md5(uniqid(mt_rand(), true)), 0, 6));
 $submissionTimestamp = date('Y-m-d H:i:s');
-$formattedDate = date('F j, Y, g:i A T');
+$indianDate = date('d-m-Y h:i A') . ' IST';
+$dobFormatted = date('d/m/Y', strtotime($dob));
 
 $record = [
     'application_id' => $applicationId,
     'full_name'      => $fullName,
     'email'          => $email,
-    'phone'          => $phone,
-    'dob'            => $dob,
+    'phone'          => $formattedPhone,
+    'alt_phone'      => $altPhone ? ('+91 ' . $altPhone) : 'N/A',
+    'dob'            => $dobFormatted,
     'gender'         => $gender,
+    'category'       => $category,
     'course'         => $course,
     'education'      => $education,
     'study_mode'     => $studyMode,
@@ -213,54 +215,49 @@ $record = [
     'city'           => $city,
     'state'          => $state,
     'zip_code'       => $zipCode,
-    'country'        => $country,
+    'country'        => 'India',
     'skills'         => $skills,
     'sop'            => $sop,
     'photo_url'      => $photoWebPath,
-    'created_at'     => $submissionTimestamp,
-    'status'         => 'PROCESSED &amp; ADMITTED'
+    'created_at'     => $indianDate,
+    'status'         => 'PROVISIONALLY REGISTERED'
 ];
 
-// -------------------------------------------------------------
-// 5. Save Record to Storage (JSON Database)
-// -------------------------------------------------------------
+// Save to JSON Database
 $dataDir = __DIR__ . DIRECTORY_SEPARATOR . 'data';
 if (!is_dir($dataDir)) {
     mkdir($dataDir, 0755, true);
 }
 $dataFile = $dataDir . DIRECTORY_SEPARATOR . 'applications.json';
-
-$existingRecords = [];
+$existing = [];
 if (file_exists($dataFile)) {
     $content = file_get_contents($dataFile);
     if (!empty($content)) {
         $decoded = json_decode($content, true);
         if (is_array($decoded)) {
-            $existingRecords = $decoded;
+            $existing = $decoded;
         }
     }
 }
-
-// Prepend the new record so newest is first
-array_unshift($existingRecords, $record);
-file_put_contents($dataFile, json_encode($existingRecords, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES), LOCK_EX);
+array_unshift($existing, $record);
+file_put_contents($dataFile, json_encode($existing, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES), LOCK_EX);
 
 // -------------------------------------------------------------
-// 6. Generate Formatted Browser Presentation (Styled Output)
+// 5. Generate Official Indian Admission Acknowledgement Slip HTML
 // -------------------------------------------------------------
 ob_start();
 ?>
-<!-- Result Toolbar with Print and Reset actions -->
+<!-- Result Toolbar -->
 <div class="result-toolbar">
   <div class="badge-status">
-    <i class="fas fa-check-circle"></i> APPLICATION SUCCESSFULLY SUBMITTED
+    <i class="fas fa-check-circle"></i> APPLICATION REGISTERED SUCCESSFULLY
   </div>
   <div class="toolbar-actions">
     <button type="button" id="btnNewForm" class="btn-tool">
-      <i class="fas fa-plus"></i> Submit Another
+      <i class="fas fa-plus"></i> New Application
     </button>
     <a href="records.php" class="btn-tool">
-      <i class="fas fa-list"></i> View All
+      <i class="fas fa-list"></i> Candidate Directory
     </a>
     <button type="button" id="btnPrint" class="btn-tool btn-print">
       <i class="fas fa-print"></i> Print / Save PDF
@@ -268,36 +265,48 @@ ob_start();
   </div>
 </div>
 
-<!-- Formal Styled Document Sheet -->
+<!-- Official Indian Admission Slip -->
 <div class="document-sheet">
   
-  <!-- Document Header -->
-  <div class="doc-header">
-    <div class="doc-org-info">
-      <h1>Global Institute of Technology &amp; Innovation</h1>
-      <p><i class="fas fa-map-marker-alt"></i> Office of Admissions &bull; Academic Year 2026-2027</p>
-      <p style="font-size: 0.8rem; color: #64748b; margin-top: 2px;">Official Confirmation of Online Candidate Registration</p>
+  <!-- Slip Header with Official National Emblem Styling -->
+  <div class="doc-header-official">
+    <div class="doc-emblem-badge">
+      <i class="fas fa-landmark"></i> Ministry of Higher Education &bull; Government of India
     </div>
-    <div class="doc-app-id">
-      <div class="ref-title">Application Reference Number</div>
-      <div class="ref-number"><?php echo htmlspecialchars($applicationId); ?></div>
-      <div class="ref-date"><i class="far fa-clock"></i> Submitted: <?php echo htmlspecialchars($formattedDate); ?></div>
+    <div class="doc-institute-hindi">राष्ट्रीय प्रौद्योगिकी एवं उन्नत अध्ययन संस्थान</div>
+    <h1 class="doc-institute-name">National Institute of Technology &amp; Advanced Studies</h1>
+    <div class="doc-slip-title">
+      Provisional Admission &amp; Registration Acknowledgement Slip &bull; Session 2026–2027
     </div>
   </div>
 
-  <!-- Applicant Primary Profile Banner -->
+  <!-- Reference ID & Submission Timestamp Bar -->
+  <div class="doc-meta-bar">
+    <div class="ref-box">
+      <span class="ref-label">Application Roll / Ref No:</span>
+      <span class="ref-value"><?php echo htmlspecialchars($applicationId); ?></span>
+    </div>
+    <div class="ref-date">
+      <i class="far fa-clock"></i> <strong>Filing Timestamp:</strong> <?php echo htmlspecialchars($indianDate); ?>
+    </div>
+  </div>
+
+  <!-- Candidate Identity Row -->
   <div class="doc-profile-row">
-    <img src="<?php echo htmlspecialchars($photoWebPath); ?>" alt="Applicant Photo" class="doc-avatar">
+    <img src="<?php echo htmlspecialchars($photoWebPath); ?>" alt="Candidate Photograph" class="doc-avatar">
     <div class="doc-applicant-meta">
       <h2><?php echo htmlspecialchars($fullName); ?></h2>
       <div class="applied-course"><i class="fas fa-graduation-cap"></i> <?php echo htmlspecialchars($course); ?></div>
-      <span class="badge-mode"><i class="fas fa-desktop"></i> <?php echo htmlspecialchars($studyMode); ?></span>
+      <span class="badge-mode"><i class="fas fa-university"></i> <?php echo htmlspecialchars($studyMode); ?></span>
+      <div style="font-size: 0.82rem; color: #475569; margin-top: 6px;">
+        <strong>Social Category:</strong> <?php echo htmlspecialchars($category); ?>
+      </div>
     </div>
   </div>
 
-  <!-- SECTION: Candidate Personal & Contact Profile -->
+  <!-- SECTION 1: Personal & Communication Details -->
   <div class="doc-section-heading">
-    <i class="fas fa-id-card"></i> Candidate Profile &amp; Contact Information
+    <i class="fas fa-id-card"></i> Candidate Personal &amp; Communication Details
   </div>
   <div class="doc-details-grid">
     <div class="detail-item">
@@ -309,67 +318,69 @@ ob_start();
       <span class="value"><?php echo htmlspecialchars($email); ?></span>
     </div>
     <div class="detail-item">
-      <span class="label">Contact Telephone</span>
-      <span class="value"><?php echo htmlspecialchars($phone); ?></span>
+      <span class="label">Primary Indian Mobile Number</span>
+      <span class="value" style="color: var(--primary); font-weight: 700;"><?php echo htmlspecialchars($formattedPhone); ?></span>
     </div>
     <div class="detail-item">
-      <span class="label">Date of Birth</span>
-      <span class="value"><?php echo htmlspecialchars($dob); ?></span>
+      <span class="label">Date of Birth (DD/MM/YYYY)</span>
+      <span class="value"><?php echo htmlspecialchars($dobFormatted); ?></span>
     </div>
     <div class="detail-item">
       <span class="label">Gender Identification</span>
       <span class="value"><?php echo htmlspecialchars($gender); ?></span>
     </div>
     <div class="detail-item">
-      <span class="label">Highest Qualification Level</span>
+      <span class="label">Qualifying Examination</span>
       <span class="value"><?php echo htmlspecialchars($education); ?></span>
     </div>
   </div>
 
-  <!-- SECTION: Residential & Mailing Address -->
+  <!-- SECTION 2: Permanent Residential Address (Indian) -->
   <div class="doc-section-heading">
-    <i class="fas fa-map-pin"></i> Residential &amp; Mailing Address
+    <i class="fas fa-map-marked-alt"></i> Permanent Residential Address in India
   </div>
   <div class="doc-details-grid">
-    <div class="detail-item">
-      <span class="label">Street Address</span>
+    <div class="detail-item" style="grid-column: span 2;">
+      <span class="label">House / Flat No., Street, Locality</span>
       <span class="value"><?php echo htmlspecialchars($address); ?></span>
     </div>
     <div class="detail-item">
-      <span class="label">City / Town</span>
+      <span class="label">City / District</span>
       <span class="value"><?php echo htmlspecialchars($city); ?></span>
     </div>
     <div class="detail-item">
-      <span class="label">State / Province</span>
+      <span class="label">State / Union Territory</span>
       <span class="value"><?php echo htmlspecialchars($state); ?></span>
     </div>
     <div class="detail-item">
-      <span class="label">Postal / Zip Code</span>
-      <span class="value"><?php echo htmlspecialchars($zipCode); ?></span>
+      <span class="label">Indian Postal PIN Code</span>
+      <span class="value" style="font-family: monospace; font-size: 1.05rem; font-weight: 800; color: var(--accent);">
+        <?php echo htmlspecialchars($zipCode); ?>
+      </span>
     </div>
-    <div class="detail-item" style="grid-column: span 2;">
-      <span class="label">Country of Residence</span>
-      <span class="value"><?php echo htmlspecialchars($country); ?></span>
+    <div class="detail-item">
+      <span class="label">Country</span>
+      <span class="value">India (IN)</span>
     </div>
   </div>
 
-  <!-- SECTION: Technical Specialization & Skills -->
+  <!-- SECTION 3: Technical Skills -->
   <div class="doc-section-heading">
-    <i class="fas fa-code"></i> Declared Technical Skills &amp; Areas of Interest
+    <i class="fas fa-laptop-code"></i> Technical Competencies &amp; Specializations
   </div>
-  <div style="margin-bottom: 20px;">
+  <div style="margin-bottom: 14px;">
     <?php if (!empty($skills)): ?>
       <div class="tag-list">
         <?php foreach ($skills as $skill): ?>
-          <span class="tag-badge"><i class="fas fa-check"></i> <?php echo htmlspecialchars($skill); ?></span>
+          <span class="tag-badge"><i class="fas fa-check-circle"></i> <?php echo htmlspecialchars($skill); ?></span>
         <?php endforeach; ?>
       </div>
     <?php else: ?>
-      <p style="color: #64748b; font-size: 0.9rem;">No specific technical competencies selected.</p>
+      <p style="color: #64748b; font-size: 0.88rem;">No prior technical specializations specified.</p>
     <?php endif; ?>
   </div>
 
-  <!-- SECTION: Statement of Purpose -->
+  <!-- SECTION 4: Statement of Purpose -->
   <div class="doc-section-heading">
     <i class="fas fa-quote-left"></i> Candidate Statement of Purpose
   </div>
@@ -377,12 +388,12 @@ ob_start();
     &ldquo;<?php echo nl2br(htmlspecialchars($sop)); ?>&rdquo;
   </div>
 
-  <!-- Document Official Verification & Footer -->
+  <!-- Official Verification Footer with Barcode & Signatures -->
   <div class="doc-footer">
     <div>
       <div class="verification-code">
-        <strong>Digital Verification Hash:</strong> <?php echo strtoupper(sha1($applicationId . $email)); ?><br>
-        <strong>Status:</strong> CONFIRMED &amp; FILED ELECTRONICALLY
+        <strong>Digital Security Hash:</strong> <?php echo strtoupper(sha1($applicationId . $email . $zipCode)); ?><br>
+        <strong>Portal Verification:</strong> ALL INDIA ADMISSIONS SYSTEM &bull; CONFIRMED
       </div>
       <div class="barcode-sim">
         ||||| | |||| |||||| || | |||| |||| ||||| |||||||
@@ -390,8 +401,8 @@ ob_start();
     </div>
     <div class="signature-box">
       <div class="sign-line"></div>
-      <div class="sign-title">Authorized Registrar Signature</div>
-      <div style="font-size: 0.72rem; color: #94a3b8;">Global Institute of Technology</div>
+      <div class="sign-title">Controller of Admissions &amp; Examinations</div>
+      <div style="font-size: 0.72rem; color: #64748b;">NITAS Central Examination Board, New Delhi</div>
     </div>
   </div>
 
@@ -400,47 +411,35 @@ ob_start();
 $renderedHtml = ob_get_clean();
 
 // -------------------------------------------------------------
-// 7. Output Response (JSON for AJAX, Full Page for Direct POST)
+// 6. Return Response
 // -------------------------------------------------------------
 if (isAjax()) {
     header('Content-Type: application/json; charset=UTF-8');
     echo json_encode([
         'success'        => true,
-        'message'        => 'Application submitted successfully!',
+        'message'        => 'Application registered successfully!',
         'application_id' => $applicationId,
         'data'           => $record,
         'html'           => $renderedHtml
     ]);
     exit;
 } else {
-    // Standard POST fallback (if user has JavaScript disabled)
+    // Non-AJAX fallback
     ?>
     <!DOCTYPE html>
     <html lang="en">
     <head>
       <meta charset="UTF-8">
       <meta name="viewport" content="width=device-width, initial-scale=1.0">
-      <title>Application Confirmation - <?php echo htmlspecialchars($applicationId); ?></title>
-      <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap">
-      <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+      <title>Admission Acknowledgement Slip - <?php echo htmlspecialchars($applicationId); ?></title>
       <link rel="stylesheet" href="css/style.css">
     </head>
     <body>
       <div class="app-container">
-        <header class="app-header">
-          <h1 class="brand-title">Global Institute of Technology &amp; Innovation</h1>
-          <p class="brand-subtitle">Official Admission Document</p>
-        </header>
-
         <div class="result-card" style="display: block;">
           <?php echo $renderedHtml; ?>
         </div>
       </div>
-      <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
-      <script>
-        $('#btnPrint').on('click', function() { window.print(); });
-        $('#btnNewForm').on('click', function() { window.location.href = 'index.php'; });
-      </script>
     </body>
     </html>
     <?php

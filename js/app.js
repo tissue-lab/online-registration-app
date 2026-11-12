@@ -1,7 +1,7 @@
 /**
- * Online Registration Portal - Client-side JavaScript & jQuery
- * Handles real-time validation, photo preview, dynamic UI, AJAX submission,
- * and result formatting/printing.
+ * Online Admission Portal - Indian Layout & Validation Scripts
+ * Implements real-time Indian mobile (+91) & 6-digit PIN validation,
+ * live candidate preview card sync, photo preview, AJAX submit, and official printable slip.
  */
 
 $(document).ready(function () {
@@ -14,34 +14,78 @@ $(document).ready(function () {
   const $photoInput = $('#photoInput');
   const $photoPreview = $('#previewImg');
   const $photoIcon = $('#photoPlaceholderIcon');
+  const $photoPlaceholderText = $('#photoPlaceholderText');
   const $sopInput = $('#statementOfPurpose');
   const $charCount = $('#charCount');
 
-  // Regex Patterns
+  // Live Summary Elements
+  const $liveName = $('#liveName');
+  const $liveEmail = $('#liveEmail');
+  const $livePhone = $('#livePhone');
+  const $liveCourse = $('#liveCourse');
+  const $liveLocation = $('#liveLocation');
+
+  // -------------------------------------------------------------
+  // 1. Validation Patterns (Indian Specifications)
+  // -------------------------------------------------------------
   const patterns = {
     name: /^[a-zA-Z\s\.\']{2,60}$/,
     email: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
-    phone: /^[+]?[0-9\s\-().]{7,25}$/,
-    zip: /^[a-zA-Z0-9\s-]{3,10}$/
+    pinCode: /^[1-9][0-9]{5}$/ // Standard Indian 6-Digit Postal PIN Code
   };
 
+  // Helper to validate Indian Mobile Number (10 digits starting with 6,7,8,9)
+  function isValidIndianMobile(phoneStr) {
+    if (!phoneStr) return false;
+    // Extract only digits
+    const digits = phoneStr.replace(/\D/g, '');
+    if (digits.length === 10) {
+      return /^[6789]\d{9}$/.test(digits);
+    } else if (digits.length === 12 && digits.startsWith('91')) {
+      return /^[6789]\d{9}$/.test(digits.substring(2));
+    }
+    return false;
+  }
+
   // -------------------------------------------------------------
-  // 1. Character Counter for Statement of Purpose
+  // 2. Live Synchronization with Sidebar Preview Card
+  // -------------------------------------------------------------
+  function updateLiveSummary() {
+    const name = $('#fullName').val().trim() || 'Aarav Sharma';
+    const email = $('#email').val().trim() || 'aarav.sharma@example.in';
+    const rawPhone = $('#phone').val().trim() || '98765 43210';
+    const course = $('#course').val() || 'B.Tech in Computer Science & Engineering';
+    const city = $('#city').val().trim() || 'Bengaluru';
+    const state = $('#state').val() || 'Karnataka';
+    const pin = $('#zipCode').val().trim() || '560001';
+
+    $liveName.text(name);
+    $liveEmail.text(email);
+    $livePhone.text('+91 ' + rawPhone.replace(/^\+91\s*/, ''));
+    $liveCourse.text(course);
+    $liveLocation.text(`${city}, ${state} - ${pin}`);
+  }
+
+  // Listen on input/change events to update summary
+  $('#fullName, #email, #phone, #course, #city, #state, #zipCode').on('input change', updateLiveSummary);
+  updateLiveSummary(); // Initial sync
+
+  // -------------------------------------------------------------
+  // 3. Statement of Purpose Character Counter
   // -------------------------------------------------------------
   if ($sopInput.length) {
+    const initLen = $sopInput.val().length;
+    $charCount.text(initLen);
+
     $sopInput.on('input', function () {
-      const currentLength = $(this).val().length;
-      $charCount.text(currentLength);
-      if (currentLength > 500) {
-        $charCount.css('color', 'var(--danger)');
-      } else {
-        $charCount.css('color', 'var(--text-muted)');
-      }
+      const len = $(this).val().length;
+      $charCount.text(len);
+      $charCount.css('color', len > 500 ? 'var(--danger)' : 'var(--text-muted)');
     });
   }
 
   // -------------------------------------------------------------
-  // 2. Photo Upload Live Preview & Validation
+  // 4. Photo Upload Live Preview & Size Validation
   // -------------------------------------------------------------
   $photoInput.on('change', function (e) {
     const file = e.target.files[0];
@@ -51,40 +95,41 @@ $(document).ready(function () {
     if (!file) {
       $photoPreview.hide().attr('src', '');
       $photoIcon.show();
+      $photoPlaceholderText.show();
       return;
     }
 
     // Validate size (max 3MB)
-    const maxSize = 3 * 1024 * 1024;
-    if (file.size > maxSize) {
+    if (file.size > 3 * 1024 * 1024) {
       $error.text('File size exceeds 3MB limit.').addClass('visible');
       $(this).val('');
       return;
     }
 
-    // Validate file type
+    // Validate image format
     const validTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/jpg'];
     if (!validTypes.includes(file.type)) {
-      $error.text('Only JPG, PNG, and WebP images are allowed.').addClass('visible');
+      $error.text('Only JPG, PNG, or WebP passport photographs are accepted.').addClass('visible');
       $(this).val('');
       return;
     }
 
-    // Read and preview
+    // Read and display preview
     const reader = new FileReader();
     reader.onload = function (event) {
       $photoIcon.hide();
+      $photoPlaceholderText.hide();
       $photoPreview.attr('src', event.target.result).show();
     };
     reader.readAsDataURL(file);
   });
 
   // -------------------------------------------------------------
-  // 3. Radio & Checkbox Active Styling Toggle
+  // 5. Radio & Checkbox Active Styling Toggles
   // -------------------------------------------------------------
   $('input[type="radio"]').on('change', function () {
-    const groupName = $(this).attr('name');
-    $(`input[name="${groupName}"]`).closest('.radio-label').removeClass('active');
+    const group = $(this).attr('name');
+    $(`input[name="${group}"]`).closest('.radio-label').removeClass('active');
     $(this).closest('.radio-label').addClass('active');
   });
 
@@ -93,10 +138,11 @@ $(document).ready(function () {
   });
 
   // -------------------------------------------------------------
-  // 4. Real-time Input Validation Helpers
+  // 6. Real-time Field Validation Helpers
   // -------------------------------------------------------------
   function validateField($field, isValid, errorMsg) {
-    const $errorEl = $(`#${$field.attr('id')}Error`);
+    const id = $field.attr('id');
+    const $errorEl = $(`#${id}Error`);
     if (isValid) {
       $field.removeClass('is-invalid').addClass('is-valid');
       if ($errorEl.length) $errorEl.removeClass('visible').text('');
@@ -108,10 +154,9 @@ $(document).ready(function () {
     }
   }
 
-  // Bind blur/input validation
   $('#fullName').on('input blur', function () {
     const val = $(this).val().trim();
-    validateField($(this), patterns.name.test(val), 'Please enter a valid full name (letters only, min 2 chars).');
+    validateField($(this), patterns.name.test(val), 'Please enter candidate legal full name (letters only, min 2 chars).');
   });
 
   $('#email').on('input blur', function () {
@@ -121,66 +166,70 @@ $(document).ready(function () {
 
   $('#phone').on('input blur', function () {
     const val = $(this).val().trim();
-    validateField($(this), patterns.phone.test(val), 'Please enter a valid phone number (at least 10 digits).');
+    validateField($(this), isValidIndianMobile(val), 'Please enter a valid 10-digit Indian mobile number starting with 6, 7, 8, or 9.');
   });
 
   $('#dob').on('change blur', function () {
     const val = $(this).val();
     if (!val) {
-      validateField($(this), false, 'Please select your date of birth.');
+      validateField($(this), false, 'Date of birth is required.');
       return;
     }
     const dob = new Date(val);
     const today = new Date();
     const age = today.getFullYear() - dob.getFullYear();
-    const isValidAge = age >= 14 && age <= 100;
-    validateField($(this), isValidAge, 'Applicant must be at least 14 years old.');
+    validateField($(this), age >= 14 && age <= 100, 'Candidate must be at least 14 years of age.');
   });
 
-  $('#course').on('change', function () {
-    const val = $(this).val();
-    validateField($(this), val !== '', 'Please select an academic course/program.');
+  $('#address').on('input blur', function () {
+    const val = $(this).val().trim();
+    validateField($(this), val.length >= 5, 'Please provide full street / house address (min 5 chars).');
   });
 
   $('#city').on('input blur', function () {
     const val = $(this).val().trim();
-    validateField($(this), val.length >= 2, 'Please enter your city.');
+    validateField($(this), val.length >= 2, 'City / District is required.');
   });
 
-  $('#country').on('change', function () {
+  $('#state').on('change blur', function () {
     const val = $(this).val();
-    validateField($(this), val !== '', 'Please select your country.');
+    validateField($(this), !!val, 'Please select your State or Union Territory.');
+  });
+
+  $('#zipCode').on('input blur', function () {
+    const val = $(this).val().trim();
+    validateField($(this), patterns.pinCode.test(val), 'Please enter a valid 6-digit Indian PIN Code (e.g. 560001).');
   });
 
   // -------------------------------------------------------------
-  // 5. Full Form Validation Before Submission
+  // 7. Full Form Validation Prior to Submission
   // -------------------------------------------------------------
-  function validateForm() {
+  function validateEntireForm() {
     let isValid = true;
     let $firstInvalid = null;
 
-    // Validate Name
+    // Name
     const nameVal = $('#fullName').val().trim();
     if (!validateField($('#fullName'), patterns.name.test(nameVal), 'Full Name is required (letters only).')) {
       isValid = false;
       if (!$firstInvalid) $firstInvalid = $('#fullName');
     }
 
-    // Validate Email
+    // Email
     const emailVal = $('#email').val().trim();
     if (!validateField($('#email'), patterns.email.test(emailVal), 'Valid email address is required.')) {
       isValid = false;
       if (!$firstInvalid) $firstInvalid = $('#email');
     }
 
-    // Validate Phone
+    // Phone
     const phoneVal = $('#phone').val().trim();
-    if (!validateField($('#phone'), patterns.phone.test(phoneVal), 'Valid phone number is required.')) {
+    if (!validateField($('#phone'), isValidIndianMobile(phoneVal), 'Valid 10-digit Indian mobile number is required.')) {
       isValid = false;
       if (!$firstInvalid) $firstInvalid = $('#phone');
     }
 
-    // Validate DOB
+    // DOB
     const dobVal = $('#dob').val();
     if (!dobVal) {
       validateField($('#dob'), false, 'Date of birth is required.');
@@ -188,43 +237,39 @@ $(document).ready(function () {
       if (!$firstInvalid) $firstInvalid = $('#dob');
     }
 
-    // Validate Gender
-    const genderVal = $('input[name="gender"]:checked').val();
-    const $genderErr = $('#genderError');
-    if (!genderVal) {
-      $genderErr.text('Please select your gender.').addClass('visible');
+    // Address
+    const addressVal = $('#address').val().trim();
+    if (!validateField($('#address'), addressVal.length >= 5, 'Permanent street address is required.')) {
       isValid = false;
-      if (!$firstInvalid) $firstInvalid = $('input[name="gender"]').first();
-    } else {
-      $genderErr.removeClass('visible');
+      if (!$firstInvalid) $firstInvalid = $('#address');
     }
 
-    // Validate Course
-    const courseVal = $('#course').val();
-    if (!validateField($('#course'), !!courseVal, 'Please select a program/course.')) {
-      isValid = false;
-      if (!$firstInvalid) $firstInvalid = $('#course');
-    }
-
-    // Validate City
+    // City
     const cityVal = $('#city').val().trim();
-    if (!validateField($('#city'), cityVal.length >= 2, 'City is required.')) {
+    if (!validateField($('#city'), cityVal.length >= 2, 'City / District is required.')) {
       isValid = false;
       if (!$firstInvalid) $firstInvalid = $('#city');
     }
 
-    // Validate Country
-    const countryVal = $('#country').val();
-    if (!validateField($('#country'), !!countryVal, 'Country is required.')) {
+    // State
+    const stateVal = $('#state').val();
+    if (!validateField($('#state'), !!stateVal, 'State / Union Territory is required.')) {
       isValid = false;
-      if (!$firstInvalid) $firstInvalid = $('#country');
+      if (!$firstInvalid) $firstInvalid = $('#state');
     }
 
-    // Validate Terms Checkbox
+    // PIN Code
+    const pinVal = $('#zipCode').val().trim();
+    if (!validateField($('#zipCode'), patterns.pinCode.test(pinVal), 'Valid 6-digit Indian PIN Code is required.')) {
+      isValid = false;
+      if (!$firstInvalid) $firstInvalid = $('#zipCode');
+    }
+
+    // Terms
     const termsChecked = $('#terms').is(':checked');
     const $termsErr = $('#termsError');
     if (!termsChecked) {
-      $termsErr.text('You must agree to the declarations and terms to proceed.').addClass('visible');
+      $termsErr.text('Candidate must accept the declaration to submit the application.').addClass('visible');
       isValid = false;
       if (!$firstInvalid) $firstInvalid = $('#terms');
     } else {
@@ -236,7 +281,7 @@ $(document).ready(function () {
         {
           scrollTop: $firstInvalid.offset().top - 120
         },
-        400
+        350
       );
       $firstInvalid.focus();
     }
@@ -245,46 +290,41 @@ $(document).ready(function () {
   }
 
   // -------------------------------------------------------------
-  // 6. Form Submission via AJAX (with jQuery)
+  // 8. Form Submission via AJAX (with jQuery)
   // -------------------------------------------------------------
   $form.on('submit', function (e) {
     e.preventDefault();
-
-    // Reset alert
     $alertBox.hide().empty();
 
-    // Validate all fields
-    if (!validateForm()) {
-      showAlert('Please correct the highlighted errors before submitting.', 'danger');
+    if (!validateEntireForm()) {
+      showAlert('Please resolve the highlighted validation errors before submitting.', 'danger');
       return false;
     }
 
-    // Show loading state
+    // Show loading spinner
     $submitBtn.prop('disabled', true).html('<span class="spinner"></span> Processing Registration...');
 
-    // Prepare FormData (supports file uploads seamlessly)
+    // FormData object (supports photo upload)
     const formData = new FormData(this);
 
-    // Perform jQuery AJAX POST
+    // Make AJAX POST request
     $.ajax({
       url: 'process.php',
       type: 'POST',
       data: formData,
-      processData: false, // Required for FormData
-      contentType: false, // Required for FormData
+      processData: false,
+      contentType: false,
       dataType: 'json',
       headers: {
         'X-Requested-With': 'XMLHttpRequest'
       },
       success: function (response) {
         if (response.success) {
-          // Success! Render styled output
-          renderConfirmationView(response.data, response.html);
+          // Success! Render official formatted result
+          renderOfficialSlip(response.html);
         } else {
-          // Server returned validation or processing errors
-          const errMsg = response.message || 'Registration failed. Please check your information.';
-          showAlert(errMsg, 'danger');
-          $submitBtn.prop('disabled', false).html('<i class="fas fa-paper-plane"></i> Submit Application');
+          showAlert(response.message || 'Registration could not be processed. Please verify your details.', 'danger');
+          $submitBtn.prop('disabled', false).html('<i class="fas fa-paper-plane"></i> Submit Application Form');
         }
       },
       error: function (xhr, status, error) {
@@ -293,86 +333,68 @@ $(document).ready(function () {
         try {
           const res = JSON.parse(xhr.responseText);
           if (res.message) errorMsg = res.message;
-        } catch (err) {
-          // Not json
-        }
+        } catch (err) {}
         showAlert(errorMsg, 'danger');
-        $submitBtn.prop('disabled', false).html('<i class="fas fa-paper-plane"></i> Submit Application');
+        $submitBtn.prop('disabled', false).html('<i class="fas fa-paper-plane"></i> Submit Application Form');
       }
     });
   });
 
   // -------------------------------------------------------------
-  // 7. Render Formatted Output on Success
+  // 9. Render Official Formatted Indian Result Slip
   // -------------------------------------------------------------
-  function renderConfirmationView(data, serverHtml) {
-    // Hide the input form card smoothly
+  function renderOfficialSlip(serverHtml) {
     $formContainer.slideUp(350, function () {
-      if (serverHtml) {
-        // If server provided pre-rendered formatted HTML, insert it
-        $resultContainer.html(serverHtml);
-      } else {
-        // Fallback: Populate client template with received data
-        populateClientCard(data);
-      }
+      $resultContainer.html(serverHtml).fadeIn(400);
 
-      // Show formatted confirmation document
-      $resultContainer.fadeIn(400);
-
-      // Smooth scroll to top of document sheet
       $('html, body').animate(
         {
-          scrollTop: $resultContainer.offset().top - 30
+          scrollTop: $resultContainer.offset().top - 20
         },
-        500
+        450
       );
 
-      // Bind events on new buttons
-      bindResultEvents();
+      bindSlipActions();
     });
   }
 
-  // -------------------------------------------------------------
-  // 8. Event Handlers for Confirmation Actions (Print / New Form)
-  // -------------------------------------------------------------
-  function bindResultEvents() {
-    // Print / Save to PDF Button
+  function bindSlipActions() {
+    // Print / Save to PDF
     $(document).off('click', '#btnPrint').on('click', '#btnPrint', function () {
       window.print();
     });
 
-    // Reset and Submit Another Application Button
+    // Reset & Submit Another Application
     $(document).off('click', '#btnNewForm').on('click', '#btnNewForm', function () {
       $form[0].reset();
       $('.is-valid, .is-invalid').removeClass('is-valid is-invalid');
-      $('.radio-label, .checkbox-label').removeClass('active');
       $photoPreview.hide().attr('src', '');
       $photoIcon.show();
-      $charCount.text('0');
+      $photoPlaceholderText.show();
+      updateLiveSummary();
 
       $resultContainer.fadeOut(300, function () {
-        $submitBtn.prop('disabled', false).html('<i class="fas fa-paper-plane"></i> Submit Application');
+        $submitBtn.prop('disabled', false).html('<i class="fas fa-paper-plane"></i> Submit Application Form');
         $formContainer.slideDown(350);
-        $('html, body').animate({ scrollTop: 0 }, 400);
+        $('html, body').animate({ scrollTop: 0 }, 350);
       });
     });
   }
 
-  // Also bind initial buttons in case of server-rendered page load
-  bindResultEvents();
+  bindSlipActions();
 
-  // Helper alert display
+  // Helper Alert
   function showAlert(message, type) {
-    const iconClass = type === 'success' ? 'fa-check-circle' : 'fa-exclamation-triangle';
+    const icon = type === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle';
     $alertBox
       .removeClass('alert-success alert-danger')
       .addClass(`alert-${type}`)
-      .html(`<i class="fas ${iconClass}"></i> <div>${message}</div>`)
+      .html(`<i class="fas ${icon}"></i> <div>${message}</div>`)
       .fadeIn();
 
     $('html, body').animate(
       {
-        scrollTop: $alertBox.offset().top - 100
+        scrollTop: $alertBox.offset().top - 90
       },
       300
     );

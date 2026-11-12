@@ -17,7 +17,7 @@ if (file_exists($dataFile)) {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Registered Candidates - Admin Directory</title>
+  <title>Registered Candidates - NITAS Central Admissions Directory</title>
   
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -27,28 +27,29 @@ if (file_exists($dataFile)) {
 </head>
 <body>
 
-  <div class="app-container" style="max-width: 1100px;">
+  <div class="app-container" style="max-width: 1160px;">
     
     <header class="app-header">
       <div class="brand-badge">
-        <i class="fas fa-database"></i> Application Management Database
+        <i class="fas fa-university"></i> Ministry of Higher Education &bull; Government of India
       </div>
       <h1 class="brand-title">Candidate Registration Directory</h1>
+      <div class="brand-subtitle-hindi">राष्ट्रीय प्रौद्योगिकी एवं उन्नत अध्ययन संस्थान - प्रवेश पंजीयन विवरण</div>
       <p class="brand-subtitle">
-        Review submitted applications, search by applicant name or program, and open official printable registration summaries.
+        Centralized portal to review submitted candidate applications, filter by state, program, or name, and view official admission slips.
       </p>
       
       <nav class="nav-links">
-        <a href="index.php"><i class="fas fa-plus-circle"></i> New Registration Form</a>
-        <a href="records.php"><i class="fas fa-sync"></i> Refresh List</a>
+        <a href="index.php"><i class="fas fa-plus-circle"></i> New Application Form</a>
+        <a href="records.php" class="active"><i class="fas fa-sync"></i> Refresh Directory</a>
       </nav>
     </header>
 
     <div class="form-card">
       <div class="form-header-bar">
-        <h2><i class="fas fa-users"></i> Registered Candidates (<?php echo count($records); ?>)</h2>
+        <h2><i class="fas fa-users"></i> Registered Applicants (<?php echo count($records); ?>)</h2>
         <div>
-          <input type="text" id="searchBox" class="form-control" placeholder="Search applicant, program, ID..." style="font-size: 0.85rem; padding: 6px 12px; width: 260px; background: #ffffff;">
+          <input type="text" id="searchBox" class="form-control" placeholder="Search candidate, state, PIN, course..." style="font-size: 0.85rem; padding: 6px 12px; width: 280px; background: #ffffff;">
         </div>
       </div>
 
@@ -56,10 +57,10 @@ if (file_exists($dataFile)) {
         <?php if (empty($records)): ?>
           <div style="text-align: center; padding: 50px 20px; color: var(--text-muted);">
             <i class="fas fa-folder-open" style="font-size: 3rem; margin-bottom: 12px; opacity: 0.4;"></i>
-            <h3>No Application Submissions Yet</h3>
-            <p>Fill out the registration form to see candidate entries listed here.</p>
+            <h3>No Candidate Applications Found</h3>
+            <p>Submit the admission form to populate candidate entries in this directory.</p>
             <a href="index.php" class="btn btn-primary" style="margin-top: 15px;">
-              <i class="fas fa-arrow-right"></i> Open Registration Form
+              <i class="fas fa-arrow-right"></i> Open Application Form
             </a>
           </div>
         <?php else: ?>
@@ -68,11 +69,11 @@ if (file_exists($dataFile)) {
               <thead>
                 <tr>
                   <th>Photo</th>
-                  <th>App ID</th>
+                  <th>Roll / Ref No.</th>
                   <th>Candidate Name</th>
-                  <th>Program / Course</th>
-                  <th>Country</th>
-                  <th>Submitted At</th>
+                  <th>Program Applied</th>
+                  <th>Location &amp; PIN</th>
+                  <th>Submission Date</th>
                   <th style="text-align: right;">Action</th>
                 </tr>
               </thead>
@@ -80,26 +81,32 @@ if (file_exists($dataFile)) {
                 <?php foreach ($records as $row): ?>
                   <tr>
                     <td>
-                      <img src="<?php echo htmlspecialchars($row['photo_url']); ?>" alt="Photo" style="width: 38px; height: 38px; border-radius: 6px; object-fit: cover;">
+                      <img src="<?php echo htmlspecialchars($row['photo_url']); ?>" alt="Photo" style="width: 38px; height: 46px; border-radius: 4px; object-fit: cover; border: 1px solid #cbd5e1;">
                     </td>
                     <td>
-                      <strong style="font-family: monospace; color: var(--primary);">
+                      <strong style="font-family: monospace; color: var(--primary); font-size: 0.9rem;">
                         <?php echo htmlspecialchars($row['application_id']); ?>
                       </strong>
                     </td>
                     <td>
                       <strong><?php echo htmlspecialchars($row['full_name']); ?></strong><br>
+                      <small style="color: var(--primary); font-weight: 600;"><?php echo htmlspecialchars($row['phone']); ?></small><br>
                       <small style="color: var(--text-muted);"><?php echo htmlspecialchars($row['email']); ?></small>
                     </td>
                     <td>
-                      <span style="font-weight: 500; font-size: 0.88rem;"><?php echo htmlspecialchars($row['course']); ?></span><br>
+                      <span style="font-weight: 600; font-size: 0.88rem; color: #1e293b;"><?php echo htmlspecialchars($row['course']); ?></span><br>
                       <small style="color: var(--text-muted);"><?php echo htmlspecialchars($row['study_mode']); ?></small>
                     </td>
-                    <td><?php echo htmlspecialchars($row['country']); ?></td>
+                    <td>
+                      <strong><?php echo htmlspecialchars($row['city'] . ', ' . $row['state']); ?></strong><br>
+                      <span style="font-family: monospace; font-size: 0.85rem; color: var(--accent); font-weight: 700;">
+                        PIN: <?php echo htmlspecialchars($row['zip_code']); ?>
+                      </span>
+                    </td>
                     <td><small><?php echo htmlspecialchars($row['created_at']); ?></small></td>
                     <td style="text-align: right;">
-                      <a href="display.php?id=<?php echo urlencode($row['application_id']); ?>" class="btn-tool" style="background: var(--primary); padding: 5px 10px;">
-                        <i class="fas fa-eye"></i> View &amp; Print
+                      <a href="display.php?id=<?php echo urlencode($row['application_id']); ?>" class="btn-tool" style="background: var(--primary); padding: 5px 12px;">
+                        <i class="fas fa-eye"></i> View Slip
                       </a>
                     </td>
                   </tr>
@@ -115,7 +122,6 @@ if (file_exists($dataFile)) {
 
   <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
   <script>
-    // Live client-side search filter
     $('#searchBox').on('keyup', function() {
       const val = $(this).val().toLowerCase();
       $('#recordsTable tbody tr').filter(function() {

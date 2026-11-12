@@ -1,5 +1,53 @@
 [
     {
+        "application_id": "NITAS/ADM/2026/A7BFEF",
+        "full_name": "Aarav Sharma",
+        "email": "aarav.sharma@example.in",
+        "phone": "+91 98765 43210",
+        "alt_phone": "+91 98123 45678",
+        "dob": "18/05/2002",
+        "gender": "Male",
+        "category": "General (GEN)",
+        "course": "B.Tech in Computer Science &amp; Engineering",
+        "education": "Bachelor&#039;s Degree (B.Sc / BCA / B.Tech)",
+        "study_mode": "Full-Time (On-Campus)",
+        "address": "Flat 402, Shanti Heights, 12th Main Road, Indiranagar",
+        "city": "Bengaluru",
+        "state": "Karnataka",
+        "zip_code": "560001",
+        "country": "India",
+        "skills": [
+            "System.Object[]"
+        ],
+        "sop": "Passionate about building scalable digital platforms for India.",
+        "photo_url": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMjAiIGhlaWdodD0iMTQwIiB2aWV3Qm94PSIwIDAgMTIwIDE0MCI+PHJlY3Qgd2lkdGg9IjEyMCIgaGVpZ2h0PSIxNDAiIHJ4PSI4IiBmaWxsPSIjMWUzYThhIi8+PHRleHQgeD0iNTAlIiB5PSI1MiUiIGZvbnQtZmFtaWx5PSJJbnRlciwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSI0NiIgZm9udC13ZWlnaHQ9IjcwMCIgZmlsbD0iI2ZmZmZmZiIgZG9taW5hbnQtYmFzZWxpbmU9Im1pZGRsZSIgdGV4dC1hbmNob3I9Im1pZGRsZSI+QVM8L3RleHQ+PC9zdmc+",
+        "created_at": "12-11-2026 08:35 AM IST",
+        "status": "PROVISIONALLY REGISTERED"
+    },
+    {
+        "application_id": "REG-2026-B848ACF8",
+        "full_name": "Marcus Aurelius",
+        "email": "marcus@rome.edu",
+        "phone": "+1 (555) 789-0123",
+        "dob": "1999-01-15",
+        "gender": "Male",
+        "course": "Cloud Systems Engineering &amp; DevOps Specialist",
+        "education": "Bachelor&#039;s Degree",
+        "study_mode": "100% Online / Remote",
+        "address": "1 Imperial Plaza",
+        "city": "Rome",
+        "state": "RM",
+        "zip_code": "00184",
+        "country": "Other",
+        "skills": [
+            "System.Object[]"
+        ],
+        "sop": "Building resilient distributed systems.",
+        "photo_url": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMjAiIGhlaWdodD0iMTIwIiB2aWV3Qm94PSIwIDAgMTIwIDEyMCI+PHJlY3Qgd2lkdGg9IjEyMCIgaGVpZ2h0PSIxMjAiIHJ4PSIxMiIgZmlsbD0iIzRmNDZlNSIvPjx0ZXh0IHg9IjUwJSIgeT0iNTQlIiBmb250LWZhbWlseT0iSW50ZXIsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iNDQiIGZvbnQtd2VpZ2h0PSI3MDAiIGZpbGw9IiNmZmZmZmYiIGRvbWluYW50LWJhc2VsaW5lPSJtaWRkbGUiIHRleHQtYW5jaG9yPSJtaWRkbGUiPk1BPC90ZXh0Pjwvc3ZnPg==",
+        "created_at": "2026-11-12 08:26:09",
+        "status": "PROCESSED &amp; ADMITTED"
+    },
+    {
         "application_id": "REG-2026-9C8D2D17",
         "full_name": "Elena Rostova",
         "email": "elena.rostova@techinstitute.edu",
